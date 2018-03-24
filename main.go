@@ -13,6 +13,7 @@ import (
 	"os"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 
+	"CIP-exchange-consumer-binance/pkg/handlers"
 )
 
 var (
@@ -68,11 +69,22 @@ func main() {
 	prices, err := client.NewListPricesService().Do(context.Background())
 	if err != nil {
 		panic(err)
-		return
 	}
 
 	for _, p := range prices {
 		go Watch(*gormdb, *client, *p)
 	}
-	select{}
+
+	for true{
+		prices, err := client.NewListPricesService().Do(context.Background())
+		if err != nil {
+			panic(err)
+		}
+		for _, price := range prices{
+			handler := handlers.TickerDbHandler{*gormdb}
+			handler.Handle(*price)
+		}
+		time.Sleep(60 * time.Second)
+	}
+
 }
