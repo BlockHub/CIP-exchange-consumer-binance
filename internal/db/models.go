@@ -27,6 +27,5 @@ type BinanceTicker struct {
 	ID  uint 			`gorm:"primary_key"`
 	MarketID uint		`gorm:"index"`
 	Price float64
-	Volume float64
 	Time int64			`gorm:"index"`
 }

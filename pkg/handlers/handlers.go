@@ -27,7 +27,6 @@ type OrderDbHandler struct{
 	Orderbook db.BinanceOrderBook
 }
 	func (odb OrderDbHandler) Handle(event *binance.WsDepthEvent){
-		fmt.Println(event)
 		for _, ask := range event.Asks {
 			price, err := strconv.ParseFloat(ask.Price, 64)
 			if err != nil{
@@ -42,3 +41,23 @@ type OrderDbHandler struct{
 			db.AddOrder(&odb.Db, price, quantity, int64(time.Now().Unix()),  odb.Orderbook)
 		}
 	}
+
+type TickerDbHandler struct{
+	Db gorm.DB
+}
+func (t TickerDbHandler) Handle(price binance.SymbolPrice) {
+	priceflt, err := strconv.ParseFloat(price.Price, 64)
+	if err != nil{
+		panic(err)
+	}
+	market := db.BinanceMarket{}
+	res := t.Db.Where(map[string]interface{}{
+		"ticker": price.Symbol[0:3],
+		"quote": price.Symbol[len(price.Symbol)-3:]}).Find(&market)
+	if res.Error != nil{
+		panic(res.Error)
+	}
+
+	db.AddTicker(&t.Db, market, priceflt)
+
+}

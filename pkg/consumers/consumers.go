@@ -21,6 +21,4 @@ func DBConsumer(gorm *gorm.DB, symbol string, book db.BinanceOrderBook){
 	if err != nil{
 		panic(err)
 	}
-
-
 }
