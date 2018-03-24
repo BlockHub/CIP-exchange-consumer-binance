@@ -17,5 +17,10 @@ func DBConsumer(gorm *gorm.DB, symbol string, book db.BinanceOrderBook){
 	handler := handlers.OrderDbHandler{*gorm, book}
 	errhandler := handlers.ErrHandler{}
 
-	binance.WsDepthServe(symbol, handler.Handle, errhandler.Handle)
+	_, _, err := binance.WsDepthServe(symbol, handler.Handle, errhandler.Handle)
+	if err != nil{
+		panic(err)
+	}
+
+
 }
