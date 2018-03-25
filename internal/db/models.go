@@ -1,9 +1,11 @@
 package db
 
+import "time"
+
 type BinanceOrderBook struct {
 	ID uint 			`gorm:"primary_key"`
 	MarketID uint 		`gorm:"index"`
-	Time int64			`gorm:"index"`
+	Time time.Time		`gorm:"index"`
 }
 
 type BinanceOrder struct {
@@ -14,7 +16,7 @@ type BinanceOrder struct {
 	//however we should skimp on memory and not add those
 	//count int64
 	Quantity float64
-	Time int64			`gorm:"index"`
+	Time time.Time		`gorm:"index"`
 }
 
 type BinanceMarket struct {
@@ -27,5 +29,5 @@ type BinanceTicker struct {
 	ID  uint 			`gorm:"primary_key"`
 	MarketID uint		`gorm:"index"`
 	Price float64
-	Time int64			`gorm:"index"`
+	Time time.Time		`gorm:"index"`
 }

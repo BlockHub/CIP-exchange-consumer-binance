@@ -38,7 +38,7 @@ type OrderDbHandler struct{
 				panic(err)
 			}
 
-			db.AddOrder(&odb.Db, price, quantity, int64(time.Now().Unix()),  odb.Orderbook)
+			db.AddOrder(&odb.Db, price, quantity, time.Now(),  odb.Orderbook)
 		}
 	}
 

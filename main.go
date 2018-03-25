@@ -31,7 +31,7 @@ func Watch(gormdb gorm.DB, client binance.Client, sym binance.SymbolPrice){
 		panic(err)
 	}
 
-	time := int64(time.Now().Unix())
+	time := time.Now()
 	for _, asks := range snapshot.Asks{
 		price, err := strconv.ParseFloat(asks.Price, 64)
 		if err != nil{
@@ -75,6 +75,9 @@ func main() {
 		go Watch(*gormdb, *client, *p)
 	}
 
+	// go Watch needs to create the markets before the ticker handler can start watching them (avoiding a race condition
+	// here)
+	time.Sleep(10 * time.Second)
 	for true{
 		prices, err := client.NewListPricesService().Do(context.Background())
 		if err != nil {
