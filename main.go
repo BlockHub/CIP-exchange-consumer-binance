@@ -61,6 +61,22 @@ func main() {
 	defer gormdb.Close()
 
 	gormdb.AutoMigrate(&db.BinanceMarket{}, &db.BinanceTicker{}, &db.BinanceOrder{}, &db.BinanceOrderBook{})
+	err = gormdb.Exec("CREATE EXTENSION IF NOT EXISTS timescaledb CASCADE;").Error
+	if err != nil{
+		panic(err)
+	}
+	err = gormdb.Exec("SELECT create_hypertable('binance_orders', 'time', if_not_exists => TRUE)").Error
+	if err != nil{
+		panic(err)
+	}
+	err = gormdb.Exec("SELECT create_hypertable('binance_tickers', 'time', if_not_exists => TRUE)").Error
+	if err != nil{
+		panic(err)
+	}
+	err = gormdb.Exec("SELECT create_hypertable('binance_order_books', 'time', if_not_exists => TRUE)").Error
+	if err != nil{
+		panic(err)
+	}
 	gormdb.DB().SetMaxOpenConns(1000)
 
 
