@@ -6,3 +6,5 @@ required env variables:
 
 - DB (e.g. postgres)
 - DB_URL (see http://doc.gorm.io/database.html#connecting-to-a-database) 
+- RAVEN_DSN (https://docs.sentry.io/clients/go/)
+- PRODUCTION (false/true)
