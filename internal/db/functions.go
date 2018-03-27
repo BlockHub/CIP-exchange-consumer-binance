@@ -4,6 +4,7 @@ import (
 	"github.com/jinzhu/gorm"
 	"time"
 	"strings"
+	"log"
 )
 
 func CreateOrderBook (db *gorm.DB, market BinanceMarket) BinanceOrderBook{
@@ -11,7 +12,7 @@ func CreateOrderBook (db *gorm.DB, market BinanceMarket) BinanceOrderBook{
 	orderbook := BinanceOrderBook{0,market.ID, time.Now()}
 	err := db.Create(&orderbook).Error
 	if err != nil{
-		panic(err)
+		log.Panic(err)
 	}
 	return orderbook
 }
@@ -21,7 +22,7 @@ func AddOrder(db *gorm.DB, rate float64, quantity float64, time time.Time, order
 	order := BinanceOrder{0,  time, orderbook.ID, rate, quantity,}
 	err := db.Create(&order).Error
 	if err != nil{
-		panic(err)
+		log.Panic(err)
 	}
 	return order
 }
@@ -31,7 +32,7 @@ func CreateOrGetMarket(db *gorm.DB, ticker string, quote string) BinanceMarket{
 	err := db.Create(&market).Error
 	if err != nil{
 		if ! strings.Contains(err.Error(), "duplicate key value violates unique constraint") {
-			panic(err)
+			log.Panic(err)
 		}
 	}
 	return market
@@ -41,6 +42,6 @@ func AddTicker(db *gorm.DB, market BinanceMarket, price float64){
 	ticker := BinanceTicker{0, market.ID, price, time.Now()}
 	err := db.Create(&ticker).Error
 	if err != nil {
-		panic(err)
+		log.Panic(err)
 	}
 }

@@ -5,6 +5,7 @@ import (
 	"CIP-exchange-consumer-binance/pkg/handlers"
 	"CIP-exchange-consumer-binance/internal/db"
 	"github.com/jinzhu/gorm"
+	"log"
 )
 
 func PrintConsumer(symbol string){
@@ -19,6 +20,6 @@ func DBConsumer(gorm *gorm.DB, symbol string, book db.BinanceOrderBook){
 
 	_, _, err := binance.WsDepthServe(symbol, handler.Handle, errhandler.Handle)
 	if err != nil{
-		panic(err)
+		log.Panic(err)
 	}
 }

@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"CIP-exchange-consumer-binance/internal/db"
 	"github.com/jinzhu/gorm"
-
 	"time"
 	"strconv"
+	"log"
 )
 
 type PrintHandler struct{
@@ -30,12 +30,12 @@ type OrderDbHandler struct{
 		for _, ask := range event.Asks {
 			price, err := strconv.ParseFloat(ask.Price, 64)
 			if err != nil{
-				panic(err)
+				log.Panic(err)
 			}
 
 			quantity, err := strconv.ParseFloat(ask.Quantity, 64)
 			if err != nil{
-				panic(err)
+				log.Panic(err)
 			}
 
 			db.AddOrder(&odb.Db, price, quantity, time.Now(),  odb.Orderbook)
@@ -48,14 +48,14 @@ type TickerDbHandler struct{
 func (t TickerDbHandler) Handle(price binance.SymbolPrice) {
 	priceflt, err := strconv.ParseFloat(price.Price, 64)
 	if err != nil{
-		panic(err)
+		log.Panic(err)
 	}
 	market := db.BinanceMarket{}
 	res := t.Db.Where(map[string]interface{}{
 		"ticker": price.Symbol[0:3],
 		"quote": price.Symbol[len(price.Symbol)-3:]}).Find(&market)
 	if res.Error != nil{
-		panic(res.Error)
+		log.Panic(err)
 	}
 
 	db.AddTicker(&t.Db, market, priceflt)
