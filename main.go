@@ -5,7 +5,6 @@ import (
 	"CIP-exchange-consumer-binance/pkg/consumers"
 	"context"
 	"github.com/joho/godotenv"
-	"log"
 	"github.com/jinzhu/gorm"
 	"CIP-exchange-consumer-binance/internal/db"
 	"time"
@@ -14,6 +13,8 @@ import (
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 
 	"CIP-exchange-consumer-binance/pkg/handlers"
+	"fmt"
+	"github.com/getsentry/raven-go"
 )
 
 var (
@@ -26,9 +27,10 @@ func Watch(gormdb gorm.DB, client binance.Client, sym binance.SymbolPrice){
 	market := db.CreateOrGetMarket(&gormdb, sym.Symbol[0:3], sym.Symbol[len(sym.Symbol)-3:])
 	orderbook := db.CreateOrderBook(&gormdb, market)
 
-	snapshot, err := client.NewDepthService().Symbol(sym.Symbol).Do(context.Background())
+	fmt.Println(sym.Symbol)
+	snapshot, err := client.NewDepthService().Symbol(sym.Symbol).Limit(100).Do(context.Background())
 	if err != nil{
-		panic(err)
+		Watch(gormdb, client, sym)
 	}
 
 	time := time.Now()
@@ -47,44 +49,61 @@ func Watch(gormdb gorm.DB, client binance.Client, sym binance.SymbolPrice){
 	consumers.DBConsumer(&gormdb, sym.Symbol, orderbook)
 }
 
+func init(){
+	useDotenv := true
+	if os.Getenv("PRODUCTION") == "true"{
+		useDotenv = false
+	}
+
+	// this loads all the constants stored in the .env file (not suitable for production)
+	// set variables in supervisor then.
+	if useDotenv {
+		err := godotenv.Load()
+		if err != nil {
+			raven.CaptureErrorAndWait(err, nil)
+		}
+	}
+	raven.SetDSN(os.Getenv("RAVEN_DSN"))
+}
+
 
 func main() {
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error loading .env file")
-	}
 
 	gormdb, err := gorm.Open(os.Getenv("DB"), os.Getenv("DB_URL"))
 	if err != nil {
-		panic(err)
+		raven.CaptureErrorAndWait(err, nil)
 	}
 	defer gormdb.Close()
 
 	gormdb.AutoMigrate(&db.BinanceMarket{}, &db.BinanceTicker{}, &db.BinanceOrder{}, &db.BinanceOrderBook{})
 	err = gormdb.Exec("CREATE EXTENSION IF NOT EXISTS timescaledb CASCADE;").Error
 	if err != nil{
-		panic(err)
+		raven.CaptureErrorAndWait(err, nil)
 	}
 	err = gormdb.Exec("SELECT create_hypertable('binance_orders', 'time', if_not_exists => TRUE)").Error
 	if err != nil{
-		panic(err)
+		fmt.Println("binance_orders")
+		raven.CaptureErrorAndWait(err, nil)
 	}
 	err = gormdb.Exec("SELECT create_hypertable('binance_tickers', 'time', if_not_exists => TRUE)").Error
 	if err != nil{
-		panic(err)
+		fmt.Println("binance_tickers")
+		raven.CaptureErrorAndWait(err, nil)
 	}
 	err = gormdb.Exec("SELECT create_hypertable('binance_order_books', 'time', if_not_exists => TRUE)").Error
 	if err != nil{
-		panic(err)
+		fmt.Println("binance_order_books")
+		raven.CaptureErrorAndWait(err, nil)
 	}
 	gormdb.DB().SetMaxOpenConns(1000)
 
 
 	// get the different ticker symbols
 	client := binance.NewClient(apiKey, secretKey)
+	client.Debug = true
 	prices, err := client.NewListPricesService().Do(context.Background())
 	if err != nil {
-		panic(err)
+		raven.CaptureErrorAndWait(err, nil)
 	}
 
 	for _, p := range prices {
@@ -97,7 +116,7 @@ func main() {
 	for true{
 		prices, err := client.NewListPricesService().Do(context.Background())
 		if err != nil {
-			panic(err)
+			raven.CaptureErrorAndWait(err, nil)
 		}
 		for _, price := range prices{
 			handler := handlers.TickerDbHandler{*gormdb}
