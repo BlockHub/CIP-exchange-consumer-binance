@@ -15,6 +15,7 @@ import (
 	"CIP-exchange-consumer-binance/pkg/handlers"
 	"fmt"
 	"github.com/getsentry/raven-go"
+	"strings"
 )
 
 var (
@@ -30,8 +31,12 @@ func Watch(gormdb gorm.DB, client binance.Client, sym binance.SymbolPrice){
 	fmt.Println(sym.Symbol)
 	snapshot, err := client.NewDepthService().Symbol(sym.Symbol).Limit(100).Do(context.Background())
 	if err != nil{
-		Watch(gormdb, client, sym)
-	}
+			if ! strings.Contains(sym.Symbol, "WPR") {
+				Watch(gormdb, client, sym)
+			} else {
+				return
+			}
+		}
 
 	time := time.Now()
 	for _, asks := range snapshot.Asks{
