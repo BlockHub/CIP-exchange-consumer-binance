@@ -8,3 +8,5 @@ required env variables:
 - DB_URL (see http://doc.gorm.io/database.html#connecting-to-a-database) 
 - RAVEN_DSN (https://docs.sentry.io/clients/go/)
 - PRODUCTION (false/true)
+- WORKER_SLEEP (ms sleep between launching each worker(400ms works))
+- TICKER_SLEEP (s sleep between getting tickers (remember 1200 calls/min max!))

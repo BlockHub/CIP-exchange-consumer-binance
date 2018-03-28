@@ -28,12 +28,12 @@ func Watch(gormdb gorm.DB, client binance.Client, sym binance.SymbolPrice){
 	market := db.CreateOrGetMarket(&gormdb, sym.Symbol[0:3], sym.Symbol[len(sym.Symbol)-3:])
 	orderbook := db.CreateOrderBook(&gormdb, market)
 
-	fmt.Println(sym.Symbol)
 	snapshot, err := client.NewDepthService().Symbol(sym.Symbol).Limit(100).Do(context.Background())
 	if err != nil{
 			if ! strings.Contains(sym.Symbol, "WPR") {
 				Watch(gormdb, client, sym)
 			} else {
+				fmt.Println("weird binance error")
 				return
 			}
 		}
@@ -87,17 +87,14 @@ func main() {
 	}
 	err = gormdb.Exec("SELECT create_hypertable('binance_orders', 'time', if_not_exists => TRUE)").Error
 	if err != nil{
-		fmt.Println("binance_orders")
 		raven.CaptureErrorAndWait(err, nil)
 	}
 	err = gormdb.Exec("SELECT create_hypertable('binance_tickers', 'time', if_not_exists => TRUE)").Error
 	if err != nil{
-		fmt.Println("binance_tickers")
 		raven.CaptureErrorAndWait(err, nil)
 	}
 	err = gormdb.Exec("SELECT create_hypertable('binance_order_books', 'time', if_not_exists => TRUE)").Error
 	if err != nil{
-		fmt.Println("binance_order_books")
 		raven.CaptureErrorAndWait(err, nil)
 	}
 	gormdb.DB().SetMaxOpenConns(1000)
@@ -105,14 +102,18 @@ func main() {
 
 	// get the different ticker symbols
 	client := binance.NewClient(apiKey, secretKey)
-	client.Debug = true
 	prices, err := client.NewListPricesService().Do(context.Background())
 	if err != nil {
 		raven.CaptureErrorAndWait(err, nil)
 	}
+	workersleep, err := strconv.ParseInt(os.Getenv("WORKER_SLEEP"), 10, 64)
+	tickersleep, err := strconv.ParseInt(os.Getenv("TICKER_SLEEP"), 10, 64)
 
+
+	// this function can kind of blast the DB.
 	for _, p := range prices {
 		go Watch(*gormdb, *client, *p)
+		time.Sleep(time.Duration(workersleep) * time.Millisecond)
 	}
 
 	// go Watch needs to create the markets before the ticker handler can start watching them (avoiding a race condition
@@ -127,7 +128,7 @@ func main() {
 			handler := handlers.TickerDbHandler{*gormdb}
 			handler.Handle(*price)
 		}
-		time.Sleep(60 * time.Second)
+		time.Sleep(time.Duration(tickersleep) * time.Second)
 	}
 
 }
