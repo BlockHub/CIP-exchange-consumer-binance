@@ -4,14 +4,14 @@ import "time"
 
 type BinanceOrderBook struct {
 	ID uint 			`gorm:"primary_key"`
-	MarketID uint 		`gorm:"index"`
+	MarketID uint
 	Time time.Time		`gorm:"primary_key"`
 }
 
 type BinanceOrder struct {
 	ID uint 			`gorm:"primary_key"`
 	Time time.Time		`gorm:"primary_key"`
-	OrderbookID uint 	`gorm:"index:book"`
+	OrderbookID uint
 	Rate float64
 	Quantity float64
 }
@@ -24,7 +24,7 @@ type BinanceMarket struct {
 
 type BinanceTicker struct {
 	ID  uint 			`gorm:"primary_key"`
-	MarketID uint		`gorm:"index"`
+	MarketID uint
 	Price float64
 	Time time.Time		`gorm:"primary_key"`
 }
