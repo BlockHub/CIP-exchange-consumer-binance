@@ -2,13 +2,13 @@ package db
 
 import "time"
 
-type BinanceOrderBook struct {
+type OrderBook struct {
 	ID uint 			`gorm:"primary_key"`
 	MarketID uint
 	Time time.Time		`gorm:"primary_key"`
 }
 
-type BinanceOrder struct {
+type Order struct {
 	ID uint 			`gorm:"primary_key"`
 	Time time.Time		`gorm:"primary_key"`
 	OrderbookID uint
@@ -16,13 +16,13 @@ type BinanceOrder struct {
 	Quantity float64
 }
 
-type BinanceMarket struct {
+type Market struct {
 	ID uint 			`gorm:"primary_key"`
 	Ticker string		`gorm:"unique_index:time_idx_market"`
 	Quote string		`gorm:"unique_index:time_idx_market"`
 }
 
-type BinanceTicker struct {
+type Ticker struct {
 	ID  uint 			`gorm:"primary_key"`
 	MarketID uint
 	Price float64
