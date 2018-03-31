@@ -16,6 +16,8 @@ import (
 	"fmt"
 	"github.com/getsentry/raven-go"
 	"strings"
+	"log"
+	"CIP-exchange-consumer-binance/pkg/pushers"
 )
 
 var (
@@ -42,12 +44,12 @@ func Watch(gormdb gorm.DB, client binance.Client, sym binance.SymbolPrice){
 	for _, asks := range snapshot.Asks{
 		price, err := strconv.ParseFloat(asks.Price, 64)
 		if err != nil{
-			panic(err)
+			log.Panic(err)
 		}
 
 		quantity, err := strconv.ParseFloat(asks.Quantity, 64)
 		if err != nil{
-			panic(err)
+			log.Panic(err)
 		}
 		db.AddOrder(&gormdb, price, quantity, time, orderbook)
 	}
@@ -74,30 +76,41 @@ func init(){
 
 func main() {
 
-	gormdb, err := gorm.Open(os.Getenv("DB"), os.Getenv("DB_URL"))
+	// our local connection
+	localdb, err := gorm.Open(os.Getenv("DB"), os.Getenv("DB_URL"))
 	if err != nil {
 		raven.CaptureErrorAndWait(err, nil)
 	}
-	defer gormdb.Close()
+	defer localdb.Close()
 
-	gormdb.AutoMigrate(&db.BinanceMarket{}, &db.BinanceTicker{}, &db.BinanceOrder{}, &db.BinanceOrderBook{})
-	err = gormdb.Exec("CREATE EXTENSION IF NOT EXISTS timescaledb CASCADE;").Error
+	remotedb, err := gorm.Open(os.Getenv("R_DB"), os.Getenv("R_DB_URL"))
+	if err != nil {
+		raven.CaptureErrorAndWait(err, nil)
+	}
+	defer localdb.Close()
+
+	localdb.AutoMigrate(&db.BinanceMarket{}, &db.BinanceTicker{}, &db.BinanceOrder{}, &db.BinanceOrderBook{})
+	err = localdb.Exec("CREATE EXTENSION IF NOT EXISTS timescaledb CASCADE;").Error
 	if err != nil{
 		raven.CaptureErrorAndWait(err, nil)
 	}
-	err = gormdb.Exec("SELECT create_hypertable('binance_orders', 'time', if_not_exists => TRUE)").Error
+	err = localdb.Exec("SELECT create_hypertable('binance_orders', 'time', if_not_exists => TRUE)").Error
 	if err != nil{
 		raven.CaptureErrorAndWait(err, nil)
 	}
-	err = gormdb.Exec("SELECT create_hypertable('binance_tickers', 'time', if_not_exists => TRUE)").Error
+	err = localdb.Exec("SELECT create_hypertable('binance_tickers', 'time', if_not_exists => TRUE)").Error
 	if err != nil{
 		raven.CaptureErrorAndWait(err, nil)
 	}
-	err = gormdb.Exec("SELECT create_hypertable('binance_order_books', 'time', if_not_exists => TRUE)").Error
+	err = localdb.Exec("SELECT create_hypertable('binance_order_books', 'time', if_not_exists => TRUE)").Error
 	if err != nil{
 		raven.CaptureErrorAndWait(err, nil)
 	}
-	gormdb.DB().SetMaxOpenConns(1000)
+	localdb.DB().SetMaxOpenConns(1000)
+
+	//start a replication worker
+	replicator := pushers.Replicator{Local:*localdb, Remote:*remotedb, Limit:100000}
+	go replicator.Start()
 
 
 	// get the different ticker symbols
@@ -112,7 +125,7 @@ func main() {
 
 	// this function can kind of blast the DB.
 	for _, p := range prices {
-		go Watch(*gormdb, *client, *p)
+		go Watch(*localdb, *client, *p)
 		time.Sleep(time.Duration(workersleep) * time.Millisecond)
 	}
 
@@ -125,7 +138,7 @@ func main() {
 			raven.CaptureErrorAndWait(err, nil)
 		}
 		for _, price := range prices{
-			handler := handlers.TickerDbHandler{*gormdb}
+			handler := handlers.TickerDbHandler{*localdb}
 			handler.Handle(*price)
 		}
 		time.Sleep(time.Duration(tickersleep) * time.Second)
