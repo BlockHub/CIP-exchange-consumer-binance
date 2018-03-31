@@ -26,7 +26,8 @@ type Replicator struct {
 // copy the markets table (should only be done once in a while, as new markets
 // are only added once every few months.
 func(r *Replicator) Start(){
-	for {
+	for true {
+		fmt.Println("replicating")
 		r.Replicate_ticker()
 	}
 }
@@ -40,14 +41,15 @@ func (r *Replicator) Replicate_ticker() {
 	orders := []db.BinanceOrder{}
 	tickers := []db.BinanceTicker{}
 
-	if (len(orders) == 0) || (len(tickers) == 0){
-		time.Sleep(10* time.Second)
-		return
-	}
+
 
 	r.Local.Limit(r.Limit).Find(&orders)
 	r.Local.Limit(r.Limit).Find(&tickers)
 
+	if (len(orders) == 0) || (len(tickers) == 0){
+		time.Sleep(10* time.Second)
+		return
+	}
 
 	for _, order := range orders {
 		err := backup.Create(&order).Error
