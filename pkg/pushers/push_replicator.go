@@ -73,7 +73,6 @@ func (r *Replicator) Replicate_ticker() {
 		}
 	}
 
-	fmt.Println("committing")
 	err := backup.Commit().Error
 	if err != nil{
 		local.Rollback()
