@@ -10,3 +10,6 @@ required env variables:
 - PRODUCTION (false/true)
 - WORKER_SLEEP (ms sleep between launching each worker(400ms works))
 - TICKER_SLEEP (s sleep between getting tickers (remember 1200 calls/min max!))
+- R_DB (remote db)
+- R_DB_URL
+- REPLICATION_LIMIT (max rows replicated per transaction block)
