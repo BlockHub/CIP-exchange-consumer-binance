@@ -109,7 +109,8 @@ func main() {
 	localdb.DB().SetMaxOpenConns(1000)
 
 	//start a replication worker
-	replicator := pushers.Replicator{Local:*localdb, Remote:*remotedb, Limit:100000}
+	limit,  err:= strconv.ParseInt(os.Getenv("REPLICATION_LIMIT"), 10, 64)
+	replicator := pushers.Replicator{Local:*localdb, Remote:*remotedb, Limit:limit}
 	go replicator.Start()
 
 
@@ -132,13 +133,14 @@ func main() {
 	// go Watch needs to create the markets before the ticker handler can start watching them (avoiding a race condition
 	// here)
 	time.Sleep(10 * time.Second)
+	fmt.Println("starting ticker gathering")
+	handler := handlers.TickerDbHandler{*localdb}
 	for true{
 		prices, err := client.NewListPricesService().Do(context.Background())
 		if err != nil {
 			raven.CaptureErrorAndWait(err, nil)
 		}
 		for _, price := range prices{
-			handler := handlers.TickerDbHandler{*localdb}
 			handler.Handle(*price)
 		}
 		time.Sleep(time.Duration(tickersleep) * time.Second)

@@ -20,7 +20,7 @@ type Replicator struct {
 	//schema related settings
 
 	//replication related settings
-	Limit int	// max rows to be fetched from remote and inserted (should be as high as possible)
+	Limit int64	// max rows to be fetched from remote and inserted (should be as high as possible)
 
 }
 // copy the markets table (should only be done once in a while, as new markets
