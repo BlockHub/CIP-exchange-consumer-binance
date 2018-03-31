@@ -40,7 +40,7 @@ func (r *Replicator) Replicate_ticker() {
 	orders := []db.BinanceOrder{}
 	tickers := []db.BinanceTicker{}
 
-	if (len(orders) == 0) && (len(tickers) == 0){
+	if (len(orders) == 0) || (len(tickers) == 0){
 		time.Sleep(10* time.Second)
 		return
 	}
