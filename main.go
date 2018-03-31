@@ -87,7 +87,7 @@ func main() {
 	if err != nil {
 		raven.CaptureErrorAndWait(err, nil)
 	}
-	defer localdb.Close()
+	defer remotedb.Close()
 
 	localdb.AutoMigrate(&db.BinanceMarket{}, &db.BinanceTicker{}, &db.BinanceOrder{}, &db.BinanceOrderBook{})
 	err = localdb.Exec("CREATE EXTENSION IF NOT EXISTS timescaledb CASCADE;").Error
