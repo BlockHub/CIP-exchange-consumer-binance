@@ -133,8 +133,9 @@ func main() {
 	// go Watch needs to create the markets before the ticker handler can start watching them (avoiding a race condition
 	// here)
 	time.Sleep(10 * time.Second)
-	fmt.Println("starting ticker gathering")
 	handler := handlers.TickerDbHandler{*localdb}
+	// now that markets are created we can send them to the remote
+	replicator.PushMarkets()
 	for true{
 		prices, err := client.NewListPricesService().Do(context.Background())
 		if err != nil {

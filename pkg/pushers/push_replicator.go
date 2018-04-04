@@ -6,6 +6,7 @@ import (
 	"CIP-exchange-consumer-binance/internal/db"
 	"fmt"
 	"time"
+	"strings"
 )
 
 
@@ -31,24 +32,54 @@ func(r *Replicator) Start(){
 		r.Replicate_ticker()
 	}
 }
+// send the initial Markets data to remote
+func (r *Replicator) PushMarkets(){
+	markets := []db.BinanceMarket{}
+	r.Local.Limit(r.Limit).Find(&markets)
 
-// copy the ticker data from a chunk
+	// we don't delete the local copies of the markets, as they are needed for FK relations
+	// and don't take up much space
+	for _, market := range markets {
+		err := r.Remote.Create(&market).Error
+		if err != nil {
+			if ! strings.Contains(err.Error(), "duplicate key value violates unique constraint") {
+				log.Panic(err)
+			}
+		}
+	}
+}
+
+
+// copy the ticker and orderbook data from a chunk of Limit and delete local rows (Is atomic)
 func (r *Replicator) Replicate_ticker() {
-	// an out interface to store lots of Order objects
 	backup := r.Remote.Begin()
 	local := r.Local.Begin()
 
 	orders := []db.BinanceOrder{}
 	tickers := []db.BinanceTicker{}
+	books := []db.BinanceOrderBook{}
 
 
 
 	r.Local.Limit(r.Limit).Find(&orders)
 	r.Local.Limit(r.Limit).Find(&tickers)
+	r.Local.Limit(r.Limit).Find(&books)
+
 
 	if (len(orders) == 0) || (len(tickers) == 0){
 		time.Sleep(10* time.Second)
 		return
+	}
+
+	for _, book := range books{
+		err := backup.Create(&book).Error
+		if err != nil{
+			panic(err)
+		}
+		err = local.Delete(&book).Error
+		if err != nil{
+			panic(err)
+		}
 	}
 
 	for _, order := range orders {
