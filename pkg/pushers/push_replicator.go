@@ -63,7 +63,7 @@ func (r *Replicator) Replicate_ticker() {
 
 	r.Local.Limit(r.Limit).Find(&orders)
 	r.Local.Limit(r.Limit).Find(&tickers)
-	r.Local.Limit(r.Limit).Find(&books)
+	r.Local.Limit(r.Limit).Order("time asc").Find(&books)
 
 
 	if (len(orders) == 0) || (len(tickers) == 0){
@@ -71,7 +71,8 @@ func (r *Replicator) Replicate_ticker() {
 		return
 	}
 
-	for _, book := range books{
+	for i, book := range books {
+		if i == len(books) - 1 { break }
 		err := backup.Create(&book).Error
 		if err != nil{
 			panic(err)
