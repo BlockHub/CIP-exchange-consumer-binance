@@ -17,7 +17,6 @@ import (
 	"github.com/getsentry/raven-go"
 	"strings"
 	"log"
-	"CIP-exchange-consumer-binance/pkg/pushers"
 )
 
 var (
@@ -89,30 +88,9 @@ func main() {
 	}
 	defer remotedb.Close()
 
-	localdb.AutoMigrate(&db.BinanceMarket{}, &db.BinanceTicker{}, &db.BinanceOrder{}, &db.BinanceOrderBook{})
-	err = localdb.Exec("CREATE EXTENSION IF NOT EXISTS timescaledb CASCADE;").Error
-	if err != nil{
-		raven.CaptureErrorAndWait(err, nil)
-	}
-	err = localdb.Exec("SELECT create_hypertable('binance_orders', 'time', if_not_exists => TRUE)").Error
-	if err != nil{
-		raven.CaptureErrorAndWait(err, nil)
-	}
-	err = localdb.Exec("SELECT create_hypertable('binance_tickers', 'time', if_not_exists => TRUE)").Error
-	if err != nil{
-		raven.CaptureErrorAndWait(err, nil)
-	}
-	err = localdb.Exec("SELECT create_hypertable('binance_order_books', 'time', if_not_exists => TRUE)").Error
-	if err != nil{
-		raven.CaptureErrorAndWait(err, nil)
-	}
+	db.Migrate(*localdb, *remotedb)
+
 	localdb.DB().SetMaxOpenConns(1000)
-
-	//start a replication worker
-	limit,  err:= strconv.ParseInt(os.Getenv("REPLICATION_LIMIT"), 10, 64)
-	replicator := pushers.Replicator{Local:*localdb, Remote:*remotedb, Limit:limit}
-	go replicator.Start()
-
 
 	// get the different ticker symbols
 	client := binance.NewClient(apiKey, secretKey)
@@ -135,7 +113,6 @@ func main() {
 	time.Sleep(10 * time.Second)
 	handler := handlers.TickerDbHandler{*localdb}
 	// now that markets are created we can send them to the remote
-	replicator.PushMarkets()
 	for true{
 		prices, err := client.NewListPricesService().Do(context.Background())
 		if err != nil {

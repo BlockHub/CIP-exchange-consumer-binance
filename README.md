@@ -2,6 +2,12 @@
 
 recommended go version: 1.10
 
+to create a binary:
+
+```shell
+    env GOOS=linux GOARCH=amd64 go build main.go
+```
+
 required env variables:
 
 - DB (e.g. postgres)

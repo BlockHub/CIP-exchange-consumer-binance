@@ -4,36 +4,29 @@ import (
 	"github.com/jinzhu/gorm"
 	"log"
 	"CIP-exchange-consumer-binance/internal/db"
-	"fmt"
-	"time"
 	"strings"
+	"fmt"
 )
 
 
 
 type Replicator struct {
+	//Used for logging purposes
+	Name string
 	// local db
 	Local gorm.DB
 
 	//remote DB (the data warehouse)
 	Remote gorm.DB
-
+	DBlink string
 	//schema related settings
 
 	//replication related settings
 	Limit int64	// max rows to be fetched from remote and inserted (should be as high as possible)
 
 }
-// copy the markets table (should only be done once in a while, as new markets
-// are only added once every few months.
-func(r *Replicator) Start(){
-	for true {
-		fmt.Println("replicating")
-		r.Replicate_ticker()
-	}
-}
 // send the initial Markets data to remote
-func (r *Replicator) PushMarkets(){
+func (r *Replicator) PushMarkets() {
 	markets := []db.BinanceMarket{}
 	r.Local.Limit(r.Limit).Find(&markets)
 
@@ -48,73 +41,57 @@ func (r *Replicator) PushMarkets(){
 		}
 	}
 }
-
-
-// copy the ticker and orderbook data from a chunk of Limit and delete local rows (Is atomic)
-func (r *Replicator) Replicate_ticker() {
-	backup := r.Remote.Begin()
-	local := r.Local.Begin()
-
-	orders := []db.BinanceOrder{}
-	tickers := []db.BinanceTicker{}
-	books := []db.BinanceOrderBook{}
-
-
-
-	r.Local.Limit(r.Limit).Find(&orders)
-	r.Local.Limit(r.Limit).Find(&tickers)
-	r.Local.Limit(r.Limit).Order("time asc").Find(&books)
-
-
-	if (len(orders) == 0) || (len(tickers) == 0){
-		time.Sleep(10* time.Second)
-		return
-	}
-
-	for i, book := range books {
-		if i == len(books) - 1 { break }
-		err := backup.Create(&book).Error
-		if err != nil{
-			panic(err)
-		}
-		err = local.Delete(&book).Error
-		if err != nil{
-			panic(err)
-		}
-	}
-
-	for _, order := range orders {
-		err := backup.Create(&order).Error
-		if err != nil{
-			panic(err)
-		}
-		err = local.Delete(&order).Error
-		if err != nil{
-			panic(err)
-		}
-	}
-
-	for _, ticker := range tickers {
-		err := backup.Create(&ticker).Error
-		if err != nil{
-			panic(err)
-		}
-		err = local.Delete(&ticker).Error
-		if err != nil{
-			panic(err)
-		}
-	}
-
-	err := backup.Commit().Error
+// Create a persistent dblink
+func (r *Replicator) Link() {
+	err := r.Remote.Exec(
+		fmt.Sprintf(`SELECT dblink_connect('%s', '%s');`, r.Name, r.DBlink)).Error
 	if err != nil{
-		local.Rollback()
-		backup.Rollback()
+		log.Panic(err)
+	}
+}
+
+// close the persistent dblink
+func (r *Replicator) Unlink(){
+	err := r.Remote.Exec(
+		fmt.Sprintf(`SELECT dblink_disconnect('%s');`, r.Name)).Error
+	if err != nil{
+		log.Panic(err)
+	}
+}
+
+func (r *Replicator) SendOrders(){
+	err := r.Remote.Exec(
+		fmt.Sprintf(
+			`INSERT INTO binance_orders (id, orderbook_id, rate, quantity, time)
+					SELECT *
+					FROM dblink(
+						'%s',
+						' DELETE FROM binance_orders WHERE id in (SELECT id FROM binance_orders ORDER BY time ASC LIMIT %d) RETURNING id, orderbook_id, rate, quantity, time;'
+					) AS deleted (id INT, orderbook_id INT, rate NUMERIC, quantity NUMERIC, time TIMESTAMP)`, r.Name, r.Limit)).Error
+	if err != nil{
 		log.Panic(err)
 	}
 
-	err = local.Commit().Error
+}
+
+func (r *Replicator) SendTickers(){
+	err := r.Remote.Exec(
+		fmt.Sprintf(
+			`INSERT INTO binance_tickers (id, market_id, price, time)
+					SELECT *
+					FROM dblink(
+						'%s',
+						' DELETE FROM binance_tickers WHERE id in (SELECT id FROM binance_tickers ORDER BY time ASC LIMIT %d) RETURNING id, market_id, price, time;'
+					) AS deleted (id INT, market_id INT, price NUMERIC, time TIMESTAMP)`, r.Name, r.Limit)).Error
 	if err != nil{
-		local.Rollback()
 		log.Panic(err)
+	}
+}
+
+func (r *Replicator) Start() {
+	// an out interface to store lots of Order objects
+	for true {
+		r.SendTickers()
+		r.SendOrders()
 	}
 }
