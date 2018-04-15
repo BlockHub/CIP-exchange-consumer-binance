@@ -38,13 +38,13 @@ func CreateOrGetMarket(db *gorm.DB, ticker string, quote string) BinanceMarket{
 	return market
 }
 
-//func AddTicker(db *gorm.DB, market BinanceMarket, price float64){
-//	ticker := BinanceTicker{0, market.ID, price, time.Now()}
-//	err := db.Create(&ticker).Error
-//	if err != nil {
-//		log.Panic(err)
-//	}
-//}
+func AddTicker(db *gorm.DB, market BinanceMarket, price float64){
+	ticker := BinanceTicker{0, market.ID, price, time.Now()}
+	err := db.Create(&ticker).Error
+	if err != nil {
+		log.Panic(err)
+	}
+}
 
 func AddTrade (db *gorm.DB, market BinanceMarket, id uint64, price float64, quantity float64, isbuyermaker bool){
 	Trade := BinanceTrade{ID:id, Price:price, Quantity:quantity, MarketID:market.ID, IsBuyerMaker:isbuyermaker, Time:time.Now()}

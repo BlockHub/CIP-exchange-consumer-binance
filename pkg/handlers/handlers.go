@@ -42,24 +42,24 @@ type OrderDbHandler struct{
 		}
 	}
 
-//type TickerDbHandler struct{
-//	Db gorm.DB
-//}
-//func (t TickerDbHandler) Handle(price binance.SymbolPrice) {
-//	priceflt, err := strconv.ParseFloat(price.Price, 64)
-//	if err != nil{
-//		log.Panic(err)
-//	}
-//	market := db.BinanceMarket{}
-//	res := t.Db.Where(map[string]interface{}{
-//		"ticker": price.Symbol[0:3],
-//		"quote": price.Symbol[len(price.Symbol)-3:]}).Find(&market)
-//	if res.Error != nil{
-//		log.Panic(err)
-//	}
-//
-//	db.AddTicker(&t.Db, market, priceflt)
-//}
+type TickerDbHandler struct{
+	Db gorm.DB
+}
+func (t TickerDbHandler) Handle(price binance.SymbolPrice) {
+	priceflt, err := strconv.ParseFloat(price.Price, 64)
+	if err != nil{
+		log.Panic(err)
+	}
+	market := db.BinanceMarket{}
+	res := t.Db.Where(map[string]interface{}{
+		"ticker": price.Symbol[0:3],
+		"quote": price.Symbol[len(price.Symbol)-3:]}).Find(&market)
+	if res.Error != nil{
+		log.Panic(err)
+	}
+
+	db.AddTicker(&t.Db, market, priceflt)
+}
 
 type TradeDbHandler struct {
 	Db gorm.DB

@@ -11,7 +11,7 @@ import (
 	"strconv"
 	"os"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
-	//"CIP-exchange-consumer-binance/pkg/handlers"
+	"CIP-exchange-consumer-binance/pkg/handlers"
 	"fmt"
 	"github.com/getsentry/raven-go"
 	"strings"
@@ -98,7 +98,7 @@ func main() {
 		raven.CaptureErrorAndWait(err, nil)
 	}
 	workersleep, err := strconv.ParseInt(os.Getenv("WORKER_SLEEP"), 10, 64)
-	//tickersleep, err := strconv.ParseInt(os.Getenv("TICKER_SLEEP"), 10, 64)
+	tickersleep, err := strconv.ParseInt(os.Getenv("TICKER_SLEEP"), 10, 64)
 
 
 	// this function can kind of blast the DB.
@@ -107,21 +107,19 @@ func main() {
 		time.Sleep(time.Duration(workersleep) * time.Millisecond)
 	}
 
-	// go Watch needs to create the markets before the ticker handler can start watching them (avoiding a race condition
-	// here)
-	//time.Sleep(10 * time.Second)
-	//handler := handlers.TickerDbHandler{*localdb}
-	//// now that markets are created we can send them to the remote
-	//for true{
-	//	prices, err := client.NewListPricesService().Do(context.Background())
-	//	if err != nil {
-	//		raven.CaptureErrorAndWait(err, nil)
-	//	}
-	//	for _, price := range prices{
-	//		handler.Handle(*price)
-	//	}
-	//	time.Sleep(time.Duration(tickersleep) * time.Second)
-	//}
-	select {}
-
+	 //go Watch needs to create the markets before the ticker handler can start watching them (avoiding a race condition
+	 //here)
+	time.Sleep(10 * time.Second)
+	handler := handlers.TickerDbHandler{*localdb}
+	// now that markets are created we can send them to the remote
+	for true{
+		prices, err := client.NewListPricesService().Do(context.Background())
+		if err != nil {
+			raven.CaptureErrorAndWait(err, nil)
+		}
+		for _, price := range prices{
+			handler.Handle(*price)
+		}
+		time.Sleep(time.Duration(tickersleep) * time.Second)
+	}
 }
