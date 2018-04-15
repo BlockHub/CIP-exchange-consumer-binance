@@ -8,7 +8,12 @@ import (
 
 func Migrate(Local gorm.DB, Remote gorm.DB){
 	// migrations are only performed by GORM if a table/column/index does not exist.
-	err := Local.AutoMigrate(&BinanceMarket{}, &BinanceTicker{}, &BinanceOrder{}, &BinanceOrderBook{}).Error
+	err := Local.AutoMigrate(	&BinanceMarket{},
+		&BinanceOrder{},
+		//&BinanceTicker{},
+		&BinanceTrade{},
+		&BinanceOrderBook{}).Error
+
 	if err != nil{
 		raven.CaptureErrorAndWait(err, nil)
 	}
@@ -34,7 +39,11 @@ func Migrate(Local gorm.DB, Remote gorm.DB){
 		raven.CaptureErrorAndWait(err, nil)
 	}
 
-	err = Remote.AutoMigrate(&BinanceMarket{}, &BinanceOrder{}, &BinanceTicker{}, &BinanceOrderBook{}).Error
+	err = Remote.AutoMigrate(	&BinanceMarket{},
+								&BinanceOrder{},
+								//&BinanceTicker{},
+								&BinanceTrade{},
+								&BinanceOrderBook{}).Error
 	if err != nil{
 		raven.CaptureErrorAndWait(err, nil)
 	}

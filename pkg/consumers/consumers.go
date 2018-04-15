@@ -14,12 +14,18 @@ func PrintConsumer(symbol string){
 	binance.WsDepthServe(symbol, handler.Handle, errhandler.Handle)
 }
 
-func DBConsumer(gorm *gorm.DB, symbol string, book db.BinanceOrderBook){
-	handler := handlers.OrderDbHandler{*gorm, book}
+func DBConsumer(gorm *gorm.DB, symbol string, book db.BinanceOrderBook, market db.BinanceMarket){
+	orderhandler := handlers.OrderDbHandler{*gorm, book}
+	tradehandler := handlers.TradeDbHandler{*gorm, market}
 	errhandler := handlers.ErrHandler{}
 
-	_, _, err := binance.WsDepthServe(symbol, handler.Handle, errhandler.Handle)
+	_, _, err := binance.WsDepthServe(symbol, orderhandler.Handle, errhandler.Handle)
 	if err != nil{
 		log.Panic(err)
 	}
+	_, _, err = binance.WsAggTradeServe(symbol, tradehandler.Handle, errhandler.Handle)
+	if err != nil {
+		log.Panic(err)
+	}
+
 }

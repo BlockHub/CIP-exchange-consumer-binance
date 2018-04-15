@@ -22,9 +22,19 @@ type BinanceMarket struct {
 	Quote string		`gorm:"unique_index:time_idx_market"`
 }
 
-type BinanceTicker struct {
+//Unused now, but commented out to not make unneccassary migrations
+//type BinanceTicker struct {
+//	ID  uint64 			`gorm:"primary_key"`
+//	MarketID uint64
+//	Price float64
+//	Time time.Time		`gorm:"primary_key"`
+//}
+
+type BinanceTrade struct {
 	ID  uint64 			`gorm:"primary_key"`
 	MarketID uint64
 	Price float64
+	Quantity float64
+	IsBuyerMaker bool
 	Time time.Time		`gorm:"primary_key"`
 }
