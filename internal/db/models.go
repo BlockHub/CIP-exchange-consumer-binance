@@ -11,6 +11,7 @@ type BinanceOrderBook struct {
 type BinanceOrder struct {
 	ID uint64 			`gorm:"primary_key"`
 	Time time.Time		`gorm:"primary_key"`
+	Buy bool
 	OrderbookID uint64
 	Rate float64
 	Quantity float64

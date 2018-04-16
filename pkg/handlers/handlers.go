@@ -38,7 +38,20 @@ type OrderDbHandler struct{
 				log.Panic(err)
 			}
 
-			db.AddOrder(&odb.Db, price, quantity, time.Now(),  odb.Orderbook)
+			db.AddOrder(&odb.Db, price, quantity, time.Now(),  odb.Orderbook, false)
+		}
+
+		for _, ask := range event.Bids {
+			price, err := strconv.ParseFloat(ask.Price, 64)
+			if err != nil{
+				log.Panic(err)
+			}
+
+			quantity, err := strconv.ParseFloat(ask.Quantity, 64)
+			if err != nil{
+				log.Panic(err)
+			}
+			db.AddOrder(&odb.Db, price, quantity, time.Now(),  odb.Orderbook, true)
 		}
 	}
 

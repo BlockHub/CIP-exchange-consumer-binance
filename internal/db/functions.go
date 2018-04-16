@@ -18,8 +18,8 @@ func CreateOrderBook (db *gorm.DB, market BinanceMarket) BinanceOrderBook{
 }
 
 
-func AddOrder(db *gorm.DB, rate float64, quantity float64, time time.Time, orderbook BinanceOrderBook) BinanceOrder{
-	order := BinanceOrder{0,  time, uint64(orderbook.ID), rate, quantity,}
+func AddOrder(db *gorm.DB, rate float64, quantity float64, time time.Time, orderbook BinanceOrderBook, buy bool) BinanceOrder{
+	order := BinanceOrder{0,  time, buy, uint64(orderbook.ID), rate, quantity}
 	err := db.Create(&order).Error
 	if err != nil{
 		log.Panic(err)
